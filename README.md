@@ -43,3 +43,17 @@ source /opt/infoworks/bin/env.sh;python /home/infoworks/abhi/source_migration_v2
 
 source /opt/infoworks/bin/env.sh;python /home/infoworks/abhi/run_migration.py --host adb-5996418727748488.8.azuredatabricks.net --token dapi6c880eecf5f80d33e31b4aa86d653a7c --cluster_id 0718-041317-gilt53 --param_file /home/infoworks/abhi/param_file.csv
 ```
+
+# Requirements
+
+1. The folder structure in ADLS Gen2 should match the target hdfs directory structure of the on-prem sources
+2. Source schema and table name should be same in HDI and Databricks
+
+## Supported Features
+- Supports migration of timestamp-based incremental tables and batch_id based incremental tables
+- Supports reading of parquet and orc files
+- Partitioning is supported
+- Column renames are supported
+
+## Unsupported Features
+- Datatypes over-rides are not supported
