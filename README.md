@@ -26,12 +26,20 @@ Syntax highlighted code block
 [Link](url) and ![Image](src)
 ```
 
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
+```markdown
+# Create RDBMS Source
 
-### Jekyll Themes
+source /opt/infoworks/bin/env.sh;python /home/infoworks/abhi/create_rdbms_source.py --source_connection_file_path /home/infoworks/abhi/source_details.csv --source_creation_template /home/infoworks/abhi/templates/create_source_template.json --host_name localhost --host_port 2999 --auth_token ytWtzxFzXlmmA90eDTXkWnrnVPq3IZA3jRLIWxwnaQ8IVqDhcScLXDdHDDhgXygfu5earU0xLKvrLOVxdzNMkA== --cluster_template default_template
 
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/abhr1994/hadoop2databricks/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
+# Add source to cluster template
 
-### Support or Contact
+python add_source_to_clustertemplate.py --source_name Teradata_test --cluster_template default_template
 
-Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+# Script to configure the sources
+
+source /opt/infoworks/bin/env.sh;python /home/infoworks/abhi/source_migration_v2.py --configuration_json_path /home/infoworks/abhi/source_AR_Test_TD.json --source_name AR_Test_TD --source_type rdbms --host_name localhost --host_port 2999 --auth_token ytWtzxFzXlmmA90eDTXkWnrnVPq3IZA3jRLIWxwnaQ8IVqDhcScLXDdHDDhgXygfu5earU0xLKvrLOVxdzNMkA== --cluster_template default_template
+
+# Script to run the historical data migration
+
+source /opt/infoworks/bin/env.sh;python /home/infoworks/abhi/run_migration.py --host adb-5996418727748488.8.azuredatabricks.net --token dapi6c880eecf5f80d33e31b4aa86d653a7c --cluster_id 0718-041317-gilt53 --param_file /home/infoworks/abhi/param_file.csv
+```
