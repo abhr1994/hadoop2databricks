@@ -15,7 +15,7 @@ def rename_col(s):
     else:
         return s
 
-def convert_to_delta(src_dir,delta_dir,mode,source_schema,table_name,src_type,format,partition_cols,override_columns):
+def convert_to_delta(src_dir,delta_dir,mode,source_schema,table_name,src_type,format,partition_cols,override_columns,repartition_num):
     # Provision to override the columnnames and datatypes
     dbutils.fs.rm("dbfs:"+delta_dir, True)
     if format.lower() in ['orc','parquet']:
@@ -41,9 +41,15 @@ def convert_to_delta(src_dir,delta_dir,mode,source_schema,table_name,src_type,fo
             if len(partition_cols['drop']) > 0:
                 df1 = df1.drop(*partition_cols['drop'])
             #We do not support regex partitioning in DB. Hence dropping the columns which were present in data as part of regex partitioning in HDI
-            df1.write.partitionBy(*partition_cols['normal']).format("delta").mode(mode).save("dbfs:" + delta_dir)
+            if repartition_num !=-1:
+                df1.repartition(repartition_num).write.partitionBy(*partition_cols['normal']).format("delta").mode(mode).save("dbfs:" + delta_dir)
+            else:
+                df1.write.partitionBy(*partition_cols['normal']).format("delta").mode(mode).save("dbfs:" + delta_dir)
         else:
-            df1.write.format("delta").mode(mode).save("dbfs:" + delta_dir)
+            if repartition_num != -1:
+                df1.repartition(repartition_num).write.format("delta").mode(mode).save("dbfs:" + delta_dir)
+            else:
+                df1.write.format("delta").mode(mode).save("dbfs:" + delta_dir)
 
         try:
             drop_table_cmd = 'drop table if exists {}.{}'.format(source_schema,table_name)
@@ -67,7 +73,7 @@ def convert_to_delta(src_dir,delta_dir,mode,source_schema,table_name,src_type,fo
         pass
 
 def main():
-    if len(sys.argv) == 10:
+    if len(sys.argv) == 11:
         src_dir=sys.argv[1]
         delta_dir=sys.argv[2]
         mode=sys.argv[3]
@@ -78,13 +84,14 @@ def main():
         part_cols_string = sys.argv[8]
         partition_cols = json.loads(part_cols_string)
         override_columns = json.loads(sys.argv[9])
+        repartition_num = int(sys.argv[10])
         print("The cmdline arguments are ")
         LOGGER.info("The cmdline arguments are ")
         print(sys.argv)
         LOGGER.info(sys.argv)
         print("Starting conversion of Files to Delta now")
         LOGGER.info("Starting conversion of Files to Delta now")
-        convert_to_delta(src_dir,delta_dir,mode,source_schema,table_name,src_type,format,partition_cols,override_columns)
+        convert_to_delta(src_dir,delta_dir,mode,source_schema,table_name,src_type,format,partition_cols,override_columns,repartition_num)
         print("Conversion of ORC/Parquet to Delta Done!!!")
         LOGGER.info("Conversion of ORC/Parquet to Delta Done!!!!!!")
     else:

@@ -14,7 +14,6 @@ from infoworks.core.iw_constants import CollectionName
 import argparse,subprocess,json
 import queue
 from threading import Thread
-from collections import defaultdict
 
 num_fetch_threads = 2
 job_queue = queue.Queue(maxsize=20)
@@ -25,6 +24,10 @@ parser.add_argument('--token',required=True,help="Provide the token")
 parser.add_argument('--cluster_id',required=True,help="Provide the cluster ID here")
 parser.add_argument('--param_file',required=True,help="Provide the file with the table details")
 parser.add_argument('--mode',required=False,default="overwrite",help="Overwrite/Append")
+parser.add_argument('--repartition',required=False,default=-1,help="repartition() is used for specifying the "
+                                                                      "number of partitions considering the number of "
+                                                                      "cores and the amount of data you have")
+
 args = vars(parser.parse_args())
 
 """Update the metadata of the Databricks Tables to make them incremental"""
@@ -70,11 +73,20 @@ def run_conversion_job(i, q):
             override_columns_db_str = json.dumps(output_override)
             partition_column = partition_column.replace('""', '"').replace('"[', '[').replace(']"', ']').replace('"{', '{').replace('}"', '}')
 
-            cmd = "python historical_table_migrate.py --host {} --token {} --cluster_id {} " \
-              "--src_dir {} --delta_dir {} --source_schema {} --table_name {} --mode {} --src_type {} --file_type {} --partition_by {} --override_columns {}".format(
-            args['host'], args['token'], args['cluster_id'], src_dir, delta_dir, source_schema, table_name, mode, source_type,
-            storage_format,"'"+partition_column+"'","'"+override_columns_db_str+"'")
-            print(str(i)+ " : "+cmd)
+            if args['repartition'] == -1:
+                cmd = "python historical_table_migrate.py --host {} --token {} --cluster_id {} " \
+                      "--src_dir {} --delta_dir {} --source_schema {} --table_name {} --mode {} --src_type {} " \
+                      "--file_type {} --partition_by {} --override_columns {}".format(
+                    args['host'], args['token'], args['cluster_id'], src_dir, delta_dir, source_schema, table_name,
+                    mode, source_type,storage_format, "'" + partition_column + "'", "'" + override_columns_db_str + "'")
+            else:
+                cmd = "python historical_table_migrate.py --host {} --token {} --cluster_id {} " \
+                      "--src_dir {} --delta_dir {} --source_schema {} --table_name {} --mode {} --src_type {} " \
+                      "--file_type {} --partition_by {} --override_columns {} --repartition {}".format(
+                    args['host'], args['token'], args['cluster_id'], src_dir, delta_dir, source_schema, table_name,
+                    mode, source_type,storage_format, "'" + partition_column + "'", "'" + override_columns_db_str + "'", args['repartition'])
+
+            print(str(i) + " : "+cmd)
             process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             out, err = process.communicate()
             print('%s: Output if any: ' %i + out.decode('utf-8'))
