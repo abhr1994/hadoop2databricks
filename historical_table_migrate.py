@@ -32,6 +32,7 @@ logging.basicConfig(filename='/opt/infoworks/temp/' + args['logfile'].strip(), f
 
 try:
     db = DatabricksAPI(host=args['host'], token=args['token'])
+    os.system("dbfs cp spark_defaults.conf dbfs:/FileStore/tables/confs/spark_defaults.conf")
     job_name = args['file_type'] + " to Delta - Migration"
     job_id = db.jobs.create_job(name=job_name, existing_cluster_id=args['cluster_id'], timeout_seconds=1800,
                                 spark_python_task={"python_file": "dbfs:/FileStore/tables/delta_conversion.py",

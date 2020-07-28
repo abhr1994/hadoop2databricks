@@ -1,6 +1,6 @@
 import sys,os,json
 from pyspark.sql.types import BooleanType
-from pyspark.sql.functions import explode,col,year,month,dayofmonth
+from pyspark.sql.functions import explode,col
 import quinn
 
 #Linking with Spark Log4j
@@ -14,6 +14,12 @@ def rename_col(s):
         return override_dict[s]
     else:
         return s
+
+def set_spark_confs():
+    confs = open("/dbfs/FileStore/tables/confs/spark_defaults.conf").readlines()
+    for conf in confs:
+        key,value = conf.split()
+        spark.conf.set(key.strip(),value.strip())
 
 def convert_to_delta(src_dir,delta_dir,mode,source_schema,table_name,src_type,format,partition_cols,override_columns,repartition_num):
     # Provision to override the columnnames and datatypes
@@ -91,6 +97,7 @@ def main():
         LOGGER.info(sys.argv)
         print("Starting conversion of Files to Delta now")
         LOGGER.info("Starting conversion of Files to Delta now")
+        set_spark_confs()
         convert_to_delta(src_dir,delta_dir,mode,source_schema,table_name,src_type,format,partition_cols,override_columns,repartition_num)
         print("Conversion of ORC/Parquet to Delta Done!!!")
         LOGGER.info("Conversion of ORC/Parquet to Delta Done!!!!!!")
