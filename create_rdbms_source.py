@@ -43,7 +43,7 @@ class bcolors:
 
 def add_source_to_clustertemplate(src_name,cluster_template):
     try:
-        cmd = "python /home/infoworks/abhi/add_source_to_clustertemplate.py --source_name {} --cluster_template {}".format(src_name,cluster_template)
+        cmd = "python add_source_to_clustertemplate.py --source_name {} --cluster_template {}".format(src_name,cluster_template)
         out = os.popen(cmd).read()
         print(out)
     except Exception:
@@ -186,7 +186,7 @@ class CreateSource:
                     add_source_to_clustertemplate(src_name, cluster_template)
                     source_id = result.get('entity_id', None)
                     if temp_dict["sourceSubtype"] == "teradata" and temp_dict["connection.connection_method"] == "tpt":
-                        tpt_details = open('/home/infoworks/abhi/templates/tpt_details.csv').readlines()
+                        tpt_details = open('templates/tpt_details.csv').readlines()
                         tpt_dict = dict(zip(tpt_details[0].strip().split(',')[:-1], tpt_details[1].strip().split(',')[:-1]))
                         td_wallet = {}
                         if tpt_details[1].strip().split(',')[-1] != '':

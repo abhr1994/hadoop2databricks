@@ -1,0 +1,27 @@
+{
+   "entity_type": "table",
+   "entity_id": {
+       "$type": "oid",
+       "$value": "5ea0487d0add6738f5caebda"
+   },
+   "configuration": {
+       "configuration": {
+           "write_supported_engines": [
+               "SPARK"
+           ],
+           "sync_type": "full-load",
+           "partition_keys": [],
+           "is_scd2_table": false,
+           "target_table_name": "",
+           "is_archive_enabled": false,
+           "generate_history_view": false,
+           "read_supported_engines": [
+               "SPARK"
+           ],
+           "storage_format": "read",
+           "target_schema_name": "",
+           "natural_keys": []
+       },
+       "table": ""
+   }
+}

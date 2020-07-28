@@ -6,7 +6,7 @@
 ```markdown
 # Create RDBMS Source
 
-source /opt/infoworks/bin/env.sh;python /home/infoworks/abhi/create_rdbms_source.py --source_connection_file_path /home/infoworks/abhi/source_details.csv --source_creation_template /home/infoworks/abhi/templates/create_source_template.json --host_name localhost --host_port 2999 --auth_token <> --cluster_template default_template
+source /opt/infoworks/bin/env.sh;python create_rdbms_source.py --source_connection_file_path source_details.csv --source_creation_template templates/create_source_template.json --host_name localhost --host_port 2999 --auth_token <> --cluster_template default_template
 
 # Add source to cluster template
 
@@ -14,11 +14,11 @@ python add_source_to_clustertemplate.py --source_name AR_Test_TD --cluster_templ
 
 # Script to configure the sources
 
-source /opt/infoworks/bin/env.sh;python /home/infoworks/abhi/source_migration_v2.py --configuration_json_path /home/infoworks/abhi/source_AR_Test_TD.json --source_name AR_Test_TD --source_type rdbms --host_name localhost --host_port 2999 --auth_token <> --cluster_template default_template
+source /opt/infoworks/bin/env.sh;python source_migration_v2.py --configuration_json_path source_AR_Test_TD.json --source_name AR_Test_TD --source_type rdbms --host_name localhost --host_port 2999 --auth_token <> --cluster_template default_template
 
 # Script to run the historical data migration
 
-source /opt/infoworks/bin/env.sh;python /home/infoworks/abhi/run_migration.py --host <> --token <> --cluster_id 0718-041317-gilt53 --param_file /home/infoworks/abhi/param_file.csv
+source /opt/infoworks/bin/env.sh;python run_migration.py --host <> --token <> --cluster_id 0718-041317-gilt53 --param_file param_file.csv
 ```
 
 # Requirements

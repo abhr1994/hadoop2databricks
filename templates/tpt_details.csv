@@ -1,0 +1,2 @@
+account_name,account_access_key,cloud_type,account_end_point,container_name,wallet_key
+abhi,12345,wasb,abc.blob.core.windows.net,abhi,12345

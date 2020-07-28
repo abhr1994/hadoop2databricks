@@ -1,0 +1,31 @@
+{
+     "entity_type": "table_group",
+     "entity_id": {
+         "$type": "oid",
+         "$value": "c6da9a107784add360042457"
+     },
+     "configuration": {
+         "name": "tg1",
+         "max_connections": 1,
+         "max_parallel_entities": 1,
+         "tables": [
+             {
+                 "table_id": {
+                     "$type": "oid",
+                     "$value": "5ea0487d0add6738f5caebda"
+                 },
+                 "connection_quota": 100
+             }
+         ],
+         "source": {
+             "$type": "oid",
+             "$value": "9f578dc3052ddc174ae72f72"
+         },
+         "cluster_template": {
+             "cluster_id": {
+                 "$type": "oid",
+                 "$value": "f1d9f29197c79eb8eecf0934"
+             }
+         }
+     }
+}

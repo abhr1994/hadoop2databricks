@@ -25,9 +25,9 @@ import copy
 
 def get_default_templates(source_type):
     if source_type == "rdbms":
-        template = "/home/infoworks/abhi/templates/template.json"
+        template = "templates/template.json"
     elif source_type == "sfdc":
-        template = "/home/infoworks/abhi/templates/sfdc_template.json"
+        template = "templates/sfdc_template.json"
     else:
         template=""
     with open(template, 'r') as template_file:
@@ -36,14 +36,14 @@ def get_default_templates(source_type):
 
     # >>> template_obj.keys()
     # dict_keys(['entity', 'source', 'tables', 'table_groups', 'entity_configs', 'iw_mappings', 'export'])
-    table_template = "/home/infoworks/abhi/templates/table_template.json"
+    table_template = "templates/table_template.json"
     with open(table_template, 'r') as table_template_file:
         tabletemplate_obj_str = table_template_file.read()
         tabletemplate_obj = IWUtils.ejson_deserialize(tabletemplate_obj_str)
 
     # >>> tabletemplate_obj.keys()
     # dict_keys(['entity_type', 'entity_id', 'configuration'])
-    tablegroup_template = "/home/infoworks/abhi/templates/tablegroup_template.json"
+    tablegroup_template = "templates/tablegroup_template.json"
     with open(tablegroup_template, 'r') as tablegroup_template_file:
         tablegrouptemplate_obj_str = tablegroup_template_file.read()
         tablegrouptemplate_obj = IWUtils.ejson_deserialize(tablegrouptemplate_obj_str)

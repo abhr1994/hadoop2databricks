@@ -38,7 +38,7 @@ def get_dump(source_id):
         print('Error: ' + str(e))
         return None
 
-def get_sql_sources():
+def get_rdbms_sources():
     try:
         src_list = ["sqlserver","teradata","oracle","netezza"]
         sql_sources = mongodb[CollectionName.SOURCES].find({ "$and": [{ "sourceType": "rdbms" }, { "sourceSubtype": { "$in": src_list } } ] }, {"_id"})
@@ -49,7 +49,7 @@ def get_sql_sources():
         return None
 
 if __name__ == '__main__':
-    source_list = get_sql_sources()
+    source_list = get_rdbms_sources()
     header_order = ["connection.driver_name","connection.schema","connection.database","connection.connection_method","connection.connection_string","connection.username","connection.password","hive_schema","sourceType","sourceSubtype","name","hdfs_path","isPublic"]
     with open('/tmp/source_file.csv', mode='w') as source_file:
         source_writer = csv.writer(source_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)

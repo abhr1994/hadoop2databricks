@@ -1,0 +1,33 @@
+{
+    "entity": {
+        "entity_type": "source",
+        "entity_id": {
+            "$type": "oid",
+            "$value": "9f578dc3052ddc174ae72f72"
+        },
+        "entity_name": ""
+    },
+    "source": {
+        "connection": {
+            "driver_name": "com.microsoft.sqlserver.jdbc.SQLServerDriver",
+            "schema": "dbo",
+            "database": "SQL Server",
+            "connection_method": "jdbc",
+            "connection_string": "jdbc:sqlserver:// 54.89.91.183:1433;database=automation_db",
+            "username": "infoadmin"
+        },
+        "hive_schema": "",
+        "sourceType": "",
+        "sourceSubtype": ""
+    },
+    "tables": [],
+    "table_groups": [],
+    "entity_configs": [],
+    "iw_mappings": [],
+    "export": {
+        "exportedAt": {
+            "$date": 1587563415251
+        },
+        "exportedBy": "Infoworks Admin"
+    }
+}

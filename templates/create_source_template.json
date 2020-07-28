@@ -1,0 +1,20 @@
+{
+    "configuration": {
+        "connection": {
+            "driver_name": "",
+            "schema": "",
+            "database": "",
+            "connection_method": "",
+            "connection_string": "",
+            "username": "",
+            "password":""
+        },
+        "hive_schema": "",
+        "sourceType": "",
+        "sourceSubtype": "",
+        "name" : "",
+        "hdfs_path" : "",
+        "isPublic" : true
+
+    }
+}

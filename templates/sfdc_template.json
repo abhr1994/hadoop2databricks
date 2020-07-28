@@ -1,0 +1,45 @@
+{
+    "entity": {
+        "entity_type": "source",
+        "entity_id": {
+            "$type": "oid",
+            "$value": "862e54b5c48cc61691039f4b"
+        },
+        "entity_name": "ar_salesforce"
+    },
+    "source": {
+        "connection": {
+            "fileType": "salesforce",
+            "api_version": "43.0",
+            "connection_string": "cs93.salesforce.com",
+            "environment": "sandbox",
+            "fetch_mechanism": "rest",
+            "secret_key": "",
+            "username": ""
+        },
+        "hive_schema": "ar_salesforce",
+        "sourceType": "crm",
+        "sourceSubtype": "salesforce"
+    },
+    "tables": [],
+    "table_groups": [],
+    "entity_configs": [],
+    "iw_mappings": [
+        {
+            "entity_type": "source",
+            "entity_id": {
+                "$type": "oid",
+                "$value": "862e54b5c48cc61691039f4b"
+            },
+            "recommendation": {
+                "source_name": "ar_salesforce"
+            }
+        }
+    ],
+    "export": {
+        "exportedAt": {
+            "$date": 1588055625711
+        },
+        "exportedBy": "Infoworks Admin"
+    }
+}
