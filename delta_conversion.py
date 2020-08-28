@@ -28,7 +28,7 @@ def convert_to_delta(src_dir,delta_dir,mode,source_schema,table_name,src_type,fo
         l = ( len(partition_cols['normal']) + len(partition_cols['drop']) ) * ["*"]
         src_dir = os.path.join(src_dir,"merged",format.lower(),*l,"*","*","*")
         df = spark.read.format(format).load("dbfs:"+src_dir)
-        columns_to_drop = ['ziw_row_id', 'ziw_scn', 'ziw_source_start_date', 'ziw_source_start_timestamp',
+        columns_to_drop = ['ziw_row_id','ziw_seqval', 'ziw_scn', 'ziw_source_start_date', 'ziw_source_start_timestamp',
                            'ziw_target_start_date', 'ziw_source_end_date', 'ziw_source_end_timestamp',
                            'ziw_target_end_date', 'ziw_target_end_timestamp', 'ziw_active', 'ziw_status_flag', 'ziw_offset']
         df1 = df.drop(*columns_to_drop)

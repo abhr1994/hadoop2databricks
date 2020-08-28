@@ -9,11 +9,11 @@
             "username": "",
             "password":""
         },
-        "hive_schema": "",
+        "target_schema_name": "",
         "sourceType": "",
         "sourceSubtype": "",
         "name" : "",
-        "hdfs_path" : "",
+        "target_base_path" : "",
         "isPublic" : true
 
     }

@@ -46,10 +46,12 @@ def run_conversion_job(i, q):
             params = q.get()
             # Do ur task here
             table_id,table_name,storage_format,src_dir,source_id,last_ingested_cdc_value,last_merged_timestamp,sync_type,partition_column,override_columns_hdi,source_name,hive_schema,source_type,sourceSubtype = params.split('|')
-            doc = mongodb[CollectionName.TABLES].find_one({"hive_schema": hive_schema, "table": table_name},
-                                                      {"hdfs_path": 1, "hive_schema": 1, "table": 1,"columns":1})
-            delta_dir = os.path.join(doc["hdfs_path"],"merged")
-            source_schema = doc["hive_schema"]
+            doc = mongodb[CollectionName.TABLES].find_one({"target_schema_name": hive_schema, "table": table_name},
+                                                      {"target_base_path": 1, "target_schema_name": 1, "table": 1,"columns":1})
+
+            src_dir = os.path.join("/mnt/datafoundry/hdi_sources",src_dir.lstrip("/"))
+            delta_dir = os.path.join(doc["target_base_path"], "merged")
+            source_schema = doc["target_schema_name"]
             table_name = doc["table"]
             mode = args["mode"]
 

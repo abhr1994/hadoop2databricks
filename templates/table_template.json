@@ -12,9 +12,9 @@
            "sync_type": "full-load",
            "partition_keys": [],
            "is_scd2_table": false,
+           "generate_history_view": false,
            "target_table_name": "",
            "is_archive_enabled": false,
-           "generate_history_view": false,
            "read_supported_engines": [
                "SPARK"
            ],

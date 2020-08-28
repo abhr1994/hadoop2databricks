@@ -52,7 +52,7 @@ if __name__ == '__main__':
     source_list = get_rdbms_sources()
     header_order = ["connection.driver_name","connection.schema","connection.database","connection.connection_method","connection.connection_string","connection.username","connection.password","hive_schema","sourceType","sourceSubtype","name","hdfs_path","isPublic"]
     with open('/tmp/source_file.csv', mode='w') as source_file:
-        source_writer = csv.writer(source_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        source_writer = csv.writer(source_file, delimiter='|', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         source_writer.writerow(header_order)
         for source in source_list:
             source_row = get_dump(source)

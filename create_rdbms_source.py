@@ -156,7 +156,12 @@ class CreateSource:
                             connection_object["configuration"]["connection"][j] = temp_dict["connection."+j]
             else:
                 try:
-                    connection_object["configuration"][item] = temp_dict[item]
+                    if item == "target_base_path":
+                        connection_object["configuration"][item] = os.path.join("/mnt/datafoundry",temp_dict["hdfs_path"].lstrip('/'))
+                    elif item == "target_schema_name":
+                        connection_object["configuration"][item] = temp_dict["hive_schema"]
+                    else:
+                        connection_object["configuration"][item] = temp_dict[item]
                 except:
                     pass
 

@@ -3,20 +3,20 @@
         "entity_type": "source",
         "entity_id": {
             "$type": "oid",
-            "$value": "9f578dc3052ddc174ae72f72"
+            "$value": ""
         },
         "entity_name": ""
     },
     "source": {
         "connection": {
-            "driver_name": "com.microsoft.sqlserver.jdbc.SQLServerDriver",
-            "schema": "dbo",
+            "driver_name": "",
+            "schema": "",
             "database": "SQL Server",
             "connection_method": "jdbc",
-            "connection_string": "jdbc:sqlserver:// 54.89.91.183:1433;database=automation_db",
-            "username": "infoadmin"
+            "connection_string": "",
+            "username": ""
         },
-        "hive_schema": "",
+        "target_schema_name": "",
         "sourceType": "",
         "sourceSubtype": ""
     },

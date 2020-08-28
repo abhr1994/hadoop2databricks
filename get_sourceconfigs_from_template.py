@@ -122,9 +122,16 @@ def configure_table(configuration_obj,tabletemplate_obj,hive_schema,source_type,
             table_temp["configuration"]["table"] = table["configuration"]["table"]
             table_temp["configuration"]["configuration"]["target_table_name"] = table['configuration']["ingestion_configuration"]["hive_table_name"]
             table_temp["configuration"]["configuration"]["target_schema_name"] = hive_schema
+            table_temp["configuration"]["configuration"]['exclude_legacy_audit_columns'] = True
             for j in ['read_supported_engines', 'write_supported_engines']:
                 table_temp["configuration"]["configuration"][j] = ["SPARK"]
-            for k in ['sync_type', 'is_scd2_table', 'is_archive_enabled', 'generate_history_view', 'natural_keys']:
+
+            #New in 4.2
+            if source_subtype in ["sqlserver","oracle"]:
+                table_temp["configuration"]["configuration"]['crawl_filter_conditions'] = []
+                table_temp["configuration"]["configuration"]['crawl_data_filter_enabled'] = False
+
+            for k in ['sync_type', 'is_scd2_table', 'is_archive_enabled','natural_keys']:
                 try:
                     if k == "natural_keys":
                         table_temp["configuration"]["configuration"][k] = table['configuration']["ingestion_configuration"][k.strip('s')]
@@ -137,6 +144,9 @@ def configure_table(configuration_obj,tabletemplate_obj,hive_schema,source_type,
                 table_temp["configuration"]["configuration"]["watermark_column"] = "SystemModstamp"
                 table_temp["configuration"]["configuration"]["fetch_mechanism"] = table['configuration']["ingestion_configuration"]["fetch_mechanism"]
                 table_temp["configuration"]["configuration"]["enable_pk_chunk"] = table['configuration']["ingestion_configuration"]["pk_chunking_enabled"]
+
+            if source_subtype == "sqlserver":
+                table_temp["configuration"]["configuration"]['use_capture_table'] = False
 
             ###partition and split strategy
             partition, split = partition_split_strategy(table)
@@ -152,7 +162,13 @@ def configure_table(configuration_obj,tabletemplate_obj,hive_schema,source_type,
             table_temp["configuration"]["configuration"]["target_table_name"] = table['configuration']["ingestion_configuration"]["hive_table_name"]
             table_temp["configuration"]["configuration"]["target_schema_name"] = hive_schema
             table_temp["configuration"]["configuration"]['sync_type'] = 'incremental'
-            for k in ['is_scd2_table', 'is_archive_enabled', 'generate_history_view', 'natural_keys']:
+            table_temp["configuration"]["configuration"]['exclude_legacy_audit_columns'] = True
+            # New in 4.2
+            if source_subtype in ["sqlserver", "oracle"]:
+                table_temp["configuration"]["configuration"]['crawl_filter_conditions'] = []
+                table_temp["configuration"]["configuration"]['crawl_data_filter_enabled'] = False
+
+            for k in ['is_scd2_table', 'is_archive_enabled', 'natural_keys']:
                 try:
                     if k == "natural_keys":
                         table_temp["configuration"]["configuration"][k] = table['configuration']["ingestion_configuration"][k.strip('s')]
@@ -160,14 +176,13 @@ def configure_table(configuration_obj,tabletemplate_obj,hive_schema,source_type,
                         table_temp["configuration"]["configuration"][k] = table['configuration']["ingestion_configuration"][k]
                 except:
                     pass
-
             table_temp["configuration"]["configuration"]['update_strategy'] = "merge"
             if table['configuration']['ingestion_configuration'].get('timestamp_column_update',None):
                 table_temp["configuration"]["configuration"]['watermark_column'] = table['configuration']['ingestion_configuration']['timestamp_column_update']
             if table['configuration']['ingestion_configuration'].get('batch_id_cdc_column',None):
                 table_temp["configuration"]["configuration"]['watermark_column'] = table['configuration']['ingestion_configuration']['batch_id_cdc_column']
             if source_subtype == "sqlserver":
-                table_temp["configuration"]["configuration"]['use_capture_table']=False
+                table_temp["configuration"]["configuration"]['use_capture_table'] = False
             if source_type == "sfdc":
                 #Add enable_pk_chunk,fetch_mechanism,watermark_column
                 table_temp["configuration"]["configuration"]["watermark_column"] = "SystemModstamp"
@@ -187,10 +202,8 @@ def configure_table(configuration_obj,tabletemplate_obj,hive_schema,source_type,
         if source_subtype == "teradata":
             table_temp["configuration"]["configuration"]["use_jdbc"] = False
             table_temp["configuration"]["configuration"]["fetch_mechanism"] = "bulk"
-            table_temp["configuration"]["configuration"]["exclude_legacy_audit_columns"] = True
         if source_subtype == "oracle":
             table_temp["configuration"]["configuration"]["fetch_mechanism"] = "bulk"
-            table_temp["configuration"]["configuration"]["exclude_legacy_audit_columns"] = True
 
         out.append(table_temp)
 
@@ -217,7 +230,10 @@ def convert_rdbms_onprem_to_db(configuration_file_path,cluster_template,source_t
             for key in final["source"]["connection"].keys():
                 final["source"]["connection"][key] = configuration_obj["source"]["connection"][key]
         else:
-            final["source"][item] = configuration_obj["source"][item]
+            if item == "target_schema_name":
+                final["source"][item] = configuration_obj["source"]["hive_schema"]
+            else:
+                final["source"][item] = configuration_obj["source"][item]
 
     cluster_out = mongodb["databricks_cluster_templates"].find_one({"cluster_name": cluster_template}, {"_id": 1})
     cluster_id = cluster_out['_id']
@@ -228,7 +244,7 @@ def convert_rdbms_onprem_to_db(configuration_file_path,cluster_template,source_t
 
     logging.info('Preparing to configure the tables. There are {} tables in this source to configure'.format(str(len(configuration_obj["tables"]))))
 
-    hive_schema = final["source"]["hive_schema"]
+    hive_schema = final["source"]["target_schema_name"]
     table_out = configure_table(configuration_obj, tabletemplate_obj, hive_schema,source_type,configuration_obj["source"]["sourceSubtype"])
     for item in table_out:
         final['tables'].append(item)
@@ -266,7 +282,7 @@ def convert_sfdc_onprem_to_db(configuration_file_path,cluster_template,source_ty
 
     logging.info('Preparing to configure the tables. There are {} tables in this source to configure'.format(str(len(configuration_obj["tables"]))))
 
-    hive_schema = final["source"]["hive_schema"]
+    hive_schema = final["source"]["target_schema_name"]
     table_out = configure_table(configuration_obj, tabletemplate_obj, hive_schema,source_type)
     for item in table_out:
         final['tables'].append(item)
