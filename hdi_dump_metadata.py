@@ -35,12 +35,12 @@ def dump_table_info(src_id = None):
             docs = mongodb[CollectionName.TABLES].find({"$and": [{"state": "ready"},
                                                       {"source": {"$in": src_id_list}}, {
                                                           "ingestion_configuration.sync_type": {
-                                                              "$in": ["cdc-timestamp-column", "cdc-batch-id"]}}]},
+                                                              "$in": ["cdc-timestamp-column", "cdc-batch-id", "full-load"]}}]},
                                             {"_id": 1, "source": 1, "table": 1, "hdfs_path": 1,
                                              "ingestion_configuration": 1, "last_ingested_cdc_value": 1,
                                              "last_merged_timestamp": 1, "columns": 1})
         else:
-            docs = mongodb[CollectionName.TABLES].find({"$and":[{"state":"ready"},{"ingestion_configuration.sync_type":{"$in":["cdc-timestamp-column","cdc-batch-id"]}}]},{"_id":1,"source":1,"table":1,"hdfs_path":1,"ingestion_configuration":1,"last_ingested_cdc_value":1,"last_merged_timestamp":1,"columns":1})
+            docs = mongodb[CollectionName.TABLES].find({"$and":[{"state":"ready"},{"ingestion_configuration.sync_type":{"$in":["cdc-timestamp-column","cdc-batch-id", "full-load"]}}]},{"_id":1,"source":1,"table":1,"hdfs_path":1,"ingestion_configuration":1,"last_ingested_cdc_value":1,"last_merged_timestamp":1,"columns":1})
 
         source_ids = []
         with open('/tmp/tables_params_file.csv', mode='w') as param_file:

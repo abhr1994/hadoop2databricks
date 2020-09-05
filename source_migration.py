@@ -25,6 +25,7 @@ parser.add_argument('--source_type', required=True, help="Provide the type of so
 parser.add_argument('--host_name', default="localhost", help='Host name/address')
 parser.add_argument('--host_port', default="2999", help='Host port')
 parser.add_argument('--cluster_template', required=True, default="", help='Provide the name of cluster template')
+
 args = vars(parser.parse_args())
 
 if not args['source_name']:
@@ -80,7 +81,7 @@ else:
 if configuration_obj:
     logging.info('Conversion of config file successful')
     configuration = IWUtils.ejson_serialize(configuration_obj)
-    logging.info('The configuration object to configure the source is {} '.format(configuration))
+    #logging.info('The configuration object to configure the source is {} '.format(configuration))
     response = IWUtils.ejson_deserialize(requests.post(configure_source_url, data=configuration).content)
     logging.info('Configuration of source done {} '.format(response))
     set_cluster_template(args['cluster_template'], source_id)

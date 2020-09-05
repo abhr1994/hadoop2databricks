@@ -1,6 +1,22 @@
-from azure.common.credentials import ServicePrincipalCredentials
-from azure.mgmt.datafactory import DataFactoryManagementClient
-from azure.mgmt.datafactory.models import *
+#!/usr/bin/env python
+import os,sys
+try:
+    iw_home = os.environ['IW_HOME']
+except KeyError as e:
+    print('Please source $IW_HOME/bin/env.sh before running this script')
+    sys.exit(1)
+
+try:
+    from azure.common.credentials import ServicePrincipalCredentials
+    from azure.mgmt.datafactory import DataFactoryManagementClient
+    from azure.mgmt.datafactory.models import *
+except ImportError:
+    os.system('python -m pip install azure-mgmt-resource')
+    os.system('python -m pip install azure-mgmt-datafactory')
+    from azure.common.credentials import ServicePrincipalCredentials
+    from azure.mgmt.datafactory import DataFactoryManagementClient
+    from azure.mgmt.datafactory.models import *
+
 from datetime import datetime, timedelta
 import time
 import argparse,sys
@@ -75,11 +91,12 @@ def main():
     adf_client = DataFactoryManagementClient(credentials, subscription_id)
 
     # Create an ADLS Gen2 Storage linked service
-    ls_name = 'storageLinkedService'
+    ls_name = 'AzureBlobStorage1gen2'
     # Specify the name and key of your Azure Storage account
     #storage_string = SecureString(value='DefaultEndpointsProtocol=https;AccountName=pepsigen2adls;AccountKey=6xAztEmI77tB1+x5PWWPMJ+ovz/hfjFfoVAES6jiM83p2/oRjfdPRx1FHGubmKITF3yut86/JviNwlvlbR7O2w==')
     storage_string = SecureString(value=args['adlsgen2_storagestring'])
-    ls_azure_storage = AzureStorageLinkedService(connection_string=storage_string)
+    ir = IntegrationRuntimeReference(reference_name="integrationRuntime2")
+    ls_azure_storage = AzureStorageLinkedService(connection_string=storage_string,connect_via=ir)
     print(rg_name)
     ls = adf_client.linked_services.create_or_update(rg_name, df_name, ls_name, ls_azure_storage)
     print_item(ls)
@@ -94,7 +111,7 @@ def main():
 
     if args['source_type'].lower() == "blob":
         # Create an Blob Storage linked service
-        ls_name_blob = 'strorageLinkedBlobService'
+        ls_name_blob = 'storageLinkedBlobService'
         #storage_string_blob = SecureString(value='DefaultEndpointsProtocol=https;AccountName=copygen1togen2blobsource;AccountKey=BSA17/S0rorUEUDvtBka3DP41uiNUEXTmso6ApUPDlTgyymu65G+4Xub9Cgv6x6yujc+T8yLuokzPZoUN+0wSg==')
         storage_string_blob = SecureString(value=args['blob_storagestring'])
         ls_azure_blob_storage = AzureStorageLinkedService(connection_string=storage_string_blob)
@@ -141,12 +158,14 @@ def main():
     # Create a pipeline run
     run_response = adf_client.pipelines.create_run(rg_name, df_name, p_name, parameters={})
     # Monitor the pipeline run
-    time.sleep(30)
-    pipeline_run = adf_client.pipeline_runs.get(
-        rg_name, df_name, run_response.run_id)
-    print("\n\tPipeline run status: {}".format(pipeline_run.status))
-    filter_params = RunFilterParameters(
-        last_updated_after=datetime.now() - timedelta(1), last_updated_before=datetime.now() + timedelta(1))
+    while True:
+        pipeline_run = adf_client.pipeline_runs.get(rg_name, df_name, run_response.run_id)
+        print("\n\tPipeline run status: {}".format(pipeline_run.status))
+        if pipeline_run.status.lower() not in ["succeeded","failed"]:
+            time.sleep(30)
+        else:
+            break
+    filter_params = RunFilterParameters(last_updated_after=datetime.now() - timedelta(1), last_updated_before=datetime.now() + timedelta(1))
     query_response = adf_client.activity_runs.query_by_pipeline_run(
         rg_name, df_name, pipeline_run.run_id, filter_params)
     print_activity_run_details(query_response.value[0])

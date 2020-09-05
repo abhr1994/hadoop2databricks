@@ -123,7 +123,7 @@ def update_teradata_tpt_details(src_id,tpt_dict,td_wallet):
             json_to_upd = {"connection.intermediate_storage":tpt_dict,"connection.is_td_wallet_enabled":True,"connection.td_wallet_key_used_for_password":td_wallet["td_wallet_key_used_for_password"]}
         else:
             print(tpt_dict)
-            json_to_upd = {"connection.intermediate_storage": tpt_dict}
+            json_to_upd = {"connection.intermediate_storage": tpt_dict,"connection.is_td_wallet_enabled":False}
         mongodb["sources"].update_one({'_id': src_id}, {'$set': json_to_upd})
     except Exception as e:
         print("Error while updating TPT details : {}".format(str(e)))
