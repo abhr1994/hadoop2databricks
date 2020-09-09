@@ -22,6 +22,10 @@ from infoworks.core.iw_utils import IWUtils
 from infoworks.core.mongo_utils import mongodb
 import copy,re
 
+abspath = os.path.abspath(__file__)
+dname = os.path.dirname(abspath)
+os.chdir(dname)
+
 def get_default_templates(source_type):
     if source_type == "rdbms":
         template = "templates/template.json"
@@ -144,6 +148,9 @@ def configure_table(configuration_obj,tabletemplate_obj,hive_schema,source_type,
         if natural_keys:
             list_of_columns = list_of_columns + natural_keys
 
+        crawl_filter_conditions = table['configuration']["ingestion_configuration"].get("crawl_filter_conditions", None)
+        if crawl_filter_conditions:
+            list_of_columns = list_of_columns + [item["filter_column"] for item in table['configuration']["ingestion_configuration"]["crawl_filter_conditions"]]
         list_of_columns = list_of_columns+ [table['configuration']['ingestion_configuration'].get('timestamp_column_update', None)] + \
                           [table['configuration']['ingestion_configuration'].get('batch_id_cdc_column', None)] + \
                           [table['configuration']['ingestion_configuration'].get('split_by_key', None)]
@@ -193,8 +200,11 @@ def configure_table(configuration_obj,tabletemplate_obj,hive_schema,source_type,
         if source_subtype in ["sqlserver", "oracle", "teradata","postgresql","db2_luw"]:
             if table['configuration']["ingestion_configuration"].get("crawl_data_filter_enabled", False):
                 table_temp["configuration"]["configuration"]['crawl_data_filter_enabled'] = True
-                table_temp["configuration"]["configuration"]['crawl_filter_conditions'] = \
-                    table['configuration']["ingestion_configuration"]["crawl_filter_conditions"]
+                filter_cond_temp = []
+                for item in table['configuration']["ingestion_configuration"]["crawl_filter_conditions"]:
+                    item["filter_column"] = column_mapping[item["filter_column"]]
+                    filter_cond_temp.append(item)
+                table_temp["configuration"]["configuration"]['crawl_filter_conditions'] = filter_cond_temp
             else:
                 table_temp["configuration"]["configuration"]['crawl_filter_conditions'] = []
                 table_temp["configuration"]["configuration"]['crawl_data_filter_enabled'] = False
@@ -230,7 +240,6 @@ def configure_table(configuration_obj,tabletemplate_obj,hive_schema,source_type,
 
 def convert_rdbms_onprem_to_db(configuration_file_path,cluster_template,source_type,src_id):
     #configuration_file_path="/home/abhi/amn_migration/hadoop_source.json"
-
     with open(configuration_file_path, 'r') as configuration_file:
         configuration = configuration_file.read()
         configuration_obj = IWUtils.ejson_deserialize(configuration)

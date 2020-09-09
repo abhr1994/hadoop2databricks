@@ -68,8 +68,8 @@ else:
 
 configure_source_url = get_tables_and_table_groups_configuration_url(client_config, source_id)
 logging.info('URL to configure the source is {} '.format(configure_source_url))
-
 logging.info('Trying to convert the on-prem JSON config file to Databricks compatible')
+
 configuration_file_path=args['configuration_json_path']
 if args['source_type'].lower() == "rdbms":
     configuration_obj = convert_rdbms_onprem_to_db(configuration_file_path,args['cluster_template'],args['source_type'].lower(),source_id)

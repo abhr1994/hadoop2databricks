@@ -10,8 +10,8 @@ LOGGER.setLevel(log4jLogger.Level.DEBUG)
 
 
 def rename_col(s):
-    if override_dict.get(s):
-        return override_dict[s]
+    if override_dict.get(s.lower()):
+        return override_dict[s.lower()].lower()
     else:
         return s
 
@@ -22,7 +22,7 @@ def set_spark_confs():
         spark.conf.set(key.strip(),value.strip())
 
 def convert_to_delta(src_dir,delta_dir,mode,source_schema,table_name,src_type,format,partition_cols,override_columns,repartition_num):
-    # Provision to override the columnnames and datatypes
+    # Provision to override the columnnames
     dbutils.fs.rm("dbfs:"+delta_dir, True)
     if format.lower() in ['orc','parquet']:
         l = ( len(partition_cols['normal']) + len(partition_cols['drop']) ) * ["*"]
@@ -40,13 +40,18 @@ def convert_to_delta(src_dir,delta_dir,mode,source_schema,table_name,src_type,fo
 
         if len(override_columns) > 0:
             global override_dict
-            override_dict = override_columns
-            df1 = df1.transform(quinn.with_columns_renamed(rename_col))
+            override_dict = dict((k.lower(), v) for k, v in override_columns.items())
+
+            def change_col_name(s):
+                return s in override_dict
+            df1 = df1.transform(quinn.with_some_columns_renamed(rename_col,change_col_name))
 
         if len(partition_cols['normal']) > 0:
+            # We do not support regex partitioning in DB. Hence dropping the columns which were present in data as part of regex partitioning in HDI
             if len(partition_cols['drop']) > 0:
                 df1 = df1.drop(*partition_cols['drop'])
-            #We do not support regex partitioning in DB. Hence dropping the columns which were present in data as part of regex partitioning in HDI
+
+            partition_cols['normal'] = [ override_columns[item].lower() if item in override_columns.keys() else item.lower() for item in partition_cols['normal']]
             if repartition_num !=-1:
                 df1.repartition(repartition_num).write.partitionBy(*partition_cols['normal']).format("delta").mode(mode).save("dbfs:" + delta_dir)
             else:

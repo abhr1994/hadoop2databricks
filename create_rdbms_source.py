@@ -43,6 +43,9 @@ class bcolors:
 
 def add_source_to_clustertemplate(src_name,cluster_template):
     try:
+        abspath = os.path.abspath(__file__)
+        dname = os.path.dirname(abspath)
+        os.chdir(dname)
         cmd = "python add_source_to_clustertemplate.py --source_name {} --cluster_template {}".format(src_name,cluster_template)
         out = os.popen(cmd).read()
         print(out)
@@ -85,6 +88,9 @@ def main():
 
     args = vars(parser.parse_args())
 
+    abspath = os.path.abspath(__file__)
+    dname = os.path.dirname(abspath)
+    os.chdir(dname)
     if not args['source_connection_file_path']:
         logging.error(bcolors.FAIL+'source_connection_file_path is required. Exiting'+bcolors.ENDC)
         sys.exit(-1)

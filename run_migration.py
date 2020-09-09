@@ -1,5 +1,5 @@
 import os
-import sys
+import sys,base64,time
 try:
     iw_home = os.environ['IW_HOME']
 except KeyError as e:
@@ -18,6 +18,16 @@ from threading import Thread
 num_fetch_threads = 2
 job_queue = queue.Queue(maxsize=20)
 
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--host',required=True,help="Provide the Databricks hostname")
 parser.add_argument('--token',required=True,help="Provide the token")
@@ -34,18 +44,18 @@ args = vars(parser.parse_args())
 def update_metadata(obj_id,table_name,json_to_upd):
     try:
         mongodb[CollectionName.TABLES].update_one({'_id': obj_id},{'$set': json_to_upd})
-        print("Metadata update done for {}".format(table_name))
+        print(bcolors.OKGREEN+"Metadata update done for {}".format(table_name)+bcolors.ENDC)
     except Exception as e:
-        print("Error while updating the metadata for table {}".format(obj_id))
-        print(str(e))
+        print(bcolors.FAIL+"Error while updating the metadata for table {}".format(obj_id)+bcolors.ENDC)
+        print(bcolors.FAIL+str(e)+bcolors.ENDC)
 
 def run_conversion_job(i, q):
-    try:
-        while True:
-            print('%s: Looking for the next conversion job' % i)
+    while True:
+        try:
+            print(bcolors.WARNING+'%s: Looking for the next conversion job' % i+bcolors.ENDC)
             params = q.get()
             # Do ur task here
-            table_id,table_name,storage_format,src_dir,source_id,last_ingested_cdc_value,last_merged_timestamp,sync_type,partition_column,override_columns_hdi,source_name,hive_schema,source_type,sourceSubtype = params.split('|')
+            table_id,table_name,storage_format,src_dir,source_id,last_ingested_cdc_value,last_merged_timestamp,sync_type,partition_column,override_columns_hdi,rowcount,source_name,hive_schema,source_type,sourceSubtype = params.split('|')
             doc = mongodb[CollectionName.TABLES].find_one({"target_schema_name": hive_schema, "table": table_name},
                                                       {"target_base_path": 1, "target_schema_name": 1, "table": 1,"columns":1})
 
@@ -62,7 +72,10 @@ def run_conversion_job(i, q):
                     renamed_column = src_column["name"]
                     override_columns_db[orig_column] = renamed_column
 
-            override_columns_hdi = json.loads(override_columns_hdi.replace('""', '"').replace('"[', '[').replace(']"', ']').replace('"{', '{').replace('}"', '}'))
+            override_columns_hdi = override_columns_hdi.encode("UTF-8")
+            d = base64.b32decode(override_columns_hdi)
+            override_columns_hdi_decoded = d.decode("UTF-8")
+            override_columns_hdi = json.loads(override_columns_hdi_decoded)
             override_columns_hdi_keys = override_columns_hdi.keys()
 
             output_override = {}
@@ -73,7 +86,11 @@ def run_conversion_job(i, q):
                     output_override[key] = override_columns_db[key]
 
             override_columns_db_str = json.dumps(output_override)
-            partition_column = partition_column.replace('""', '"').replace('"[', '[').replace(']"', ']').replace('"{', '{').replace('}"', '}')
+
+            partition_column = partition_column.encode("UTF-8")
+            d = base64.b32decode(partition_column)
+            partition_column_decoded = d.decode("UTF-8")
+            partition_column = partition_column_decoded
 
             if args['repartition'] == -1:
                 cmd = "python historical_table_migrate.py --host {} --token {} --cluster_id {} " \
@@ -88,23 +105,33 @@ def run_conversion_job(i, q):
                     args['host'], args['token'], args['cluster_id'], src_dir, delta_dir, source_schema, table_name,
                     mode, source_type,storage_format, "'" + partition_column + "'", "'" + override_columns_db_str + "'", args['repartition'])
 
-            print(str(i) + " : "+cmd)
+            print(bcolors.OKGREEN+str(i) + " : "+cmd+bcolors.ENDC)
             process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            animation = ["[■□□□□□□□□□]", "[■■□□□□□□□□]", "[■■■□□□□□□□]", "[■■■■□□□□□□]", "[■■■■■□□□□□]", "[■■■■■■□□□□]",
+                         "[■■■■■■■□□□]", "[■■■■■■■■□□]", "[■■■■■■■■■□]", "[■■■■■■■■■■]"]
+            for k in range(6):
+                time.sleep(10)
+                sys.stdout.write("\r" + animation[k % len(animation)])
+                sys.stdout.flush()
             out, err = process.communicate()
-            print('%s: Output if any: ' %i + out.decode('utf-8'))
-            print('%s: Error if any: ' %i + err.decode('utf-8'))
+            for k in [6,7,8,9]:
+                time.sleep(0.2)
+                sys.stdout.write("\r" + animation[k % len(animation)])
+                sys.stdout.flush()
+            print(bcolors.OKBLUE+'\n%s: Output if any: ' %i + out.decode('utf-8')+bcolors.ENDC)
+            print(bcolors.FAIL+'%s: Error if any: ' %i + err.decode('utf-8')+bcolors.ENDC)
 
-            print("%s: Updating the metadata now" %i )
-            json_to_update = {"full_load_performed": True, "state": "ready",
+            print(bcolors.HEADER+"%s: Updating the metadata now" %i +bcolors.ENDC)
+            json_to_update = {"full_load_performed": True, "state": "ready", "rowCount": int(rowcount),
                               "last_ingested_cdc_value": last_ingested_cdc_value,
                               "last_merged_watermark": last_merged_timestamp, "state_export_data": False,
                               "state_fetch_delta": False, "state_merge_delta": False, "state_reconcile_data": False}
 
             update_metadata(doc['_id'],table_name,json_to_update)
             q.task_done()
-    except Exception as e:
-        print(str(e))
-        q.task_done()
+        except Exception as e:
+            print(str(e))
+            q.task_done()
 
 
 def main():
@@ -113,6 +140,9 @@ def main():
         worker.setDaemon(True)
         worker.start()
     try:
+        abspath = os.path.abspath(__file__)
+        dname = os.path.dirname(abspath)
+        os.chdir(dname)
         with open(args["param_file"]) as fp:
             next(fp)
             for line in fp:
@@ -121,13 +151,9 @@ def main():
         print(str(e))
 
     # Now wait for the queue to be empty, indicating that we have processed all of the tables.
-    print('*** Main thread waiting')
+    print(bcolors.WARNING+'*** Main thread waiting'+bcolors.ENDC)
     job_queue.join()
-    print('*** Done')
+    print(bcolors.OKGREEN+'*** Done'+bcolors.ENDC)
 
 main()
 
-
-'''
-python run_migration.py --host adb-5996418727748488.8.azuredatabricks.net --token dapi6c880eecf5f80d33e31b4aa86d653a7c --cluster_id 0718-041317-gilt53 --param_file param_file.csv
-'''
