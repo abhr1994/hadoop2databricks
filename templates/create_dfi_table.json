@@ -1,0 +1,29 @@
+{
+            "entity_type": "table",
+            "entity_id": {
+                "$type": "oid",
+                "$value": "9f49fce31d3868f29d97062d"
+            },
+            "configuration": {
+                "configuration": {
+                    "write_supported_engines": [
+                        "SPARK"
+                    ],
+                    "source_file_type": "csv",
+                    "source_relative_path": "/all",
+                    "target_table_name": "customer",
+                    "ingest_subdirectories": false,
+                    "source_file_properties": {
+                        "column_enclosed_by": "",
+                        "header_rows_count": 1,
+                        "column_separator": ",",
+                        "escape_character": "\\",
+                        "encoding": "UTF-8"
+                    },
+                    "exclude_filename_regex": "",
+                    "include_filename_regex": ".*",
+                    "target_relative_path": "customer"
+                },
+                "table": "customer"
+            }
+}

@@ -1,0 +1,22 @@
+{
+    "entity": {
+        "entity_type": "source",
+        "entity_id": {
+            "$type": "oid",
+            "$value": "3cbeeb602bff84500cc9cde6"
+        },
+        "entity_name": ""
+    },
+    "tables": [],
+    "table_groups": [],
+    "entity_configs": [],
+    "file_mappings": [],
+    "topic_mappings": [],
+    "iw_mappings": [],
+    "export": {
+        "exportedAt": {
+            "$date": 1600151197879
+        },
+        "exportedBy": "Infoworks Admin"
+    }
+}

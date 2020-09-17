@@ -22,6 +22,10 @@ from infoworks.core.iw_utils import IWUtils
 from infoworks.core.mongo_utils import mongodb
 import copy,re
 
+abspath = os.path.abspath(__file__)
+dname = os.path.dirname(abspath)
+os.chdir(dname)
+
 def get_default_templates(source_type):
     if source_type == "rdbms":
         template = "templates/template.json"
@@ -138,132 +142,106 @@ def configure_table_group(configuration_obj,tablegrouptemplate_obj,cluster_id,so
 
 def configure_table(configuration_obj,tabletemplate_obj,hive_schema,source_type,source_subtype = None,connection_method = None):
     out = []
-    list_of_columns = []
     for table in configuration_obj["tables"]:
-        natural_keys = table['configuration']["ingestion_configuration"].get("natural_key", None)
-        if natural_keys:
-            list_of_columns = list_of_columns + natural_keys
+        try:
+            list_of_columns = []
+            natural_keys = table['configuration']["ingestion_configuration"].get("natural_key", None)
+            if natural_keys:
+                list_of_columns = list_of_columns + natural_keys
 
-        list_of_columns = list_of_columns+ [table['configuration']['ingestion_configuration'].get('timestamp_column_update', None)] + \
-                          [table['configuration']['ingestion_configuration'].get('batch_id_cdc_column', None)] + \
-                          [table['configuration']['ingestion_configuration'].get('split_by_key', None)]
+            crawl_filter_conditions = table['configuration']["ingestion_configuration"].get("crawl_filter_conditions", None)
+            if crawl_filter_conditions:
+                list_of_columns = list_of_columns + [item["filter_column"] for item in table['configuration']["ingestion_configuration"]["crawl_filter_conditions"]]
+            list_of_columns = list_of_columns+ [table['configuration']['ingestion_configuration'].get('timestamp_column_update', None)] + \
+                              [table['configuration']['ingestion_configuration'].get('batch_id_cdc_column', None)] + \
+                              [table['configuration']['ingestion_configuration'].get('split_by_key', None)]
 
-        for item in table['configuration']["ingestion_configuration"].get("partition_key", []):
-            list_of_columns.append(item["partition_key_column"])
-        list_of_columns = list(filter(None.__ne__, list_of_columns))
-        column_mapping = get_db_column_name(table['configuration']['columns'],list_of_columns)
+            for item in table['configuration']["ingestion_configuration"].get("partition_key", []):
+                list_of_columns.append(item["partition_key_column"])
+            list_of_columns = list(filter(None.__ne__, list_of_columns))
+            column_mapping = get_db_column_name(table['configuration']['columns'],list_of_columns)
 
-        if table['configuration']["ingestion_configuration"]['sync_type'] == "full-load":
             table_temp = copy.deepcopy(tabletemplate_obj)
+
+            if table['configuration']["ingestion_configuration"]['sync_type'] == "full-load":
+                table_temp["configuration"]["configuration"]['sync_type'] = 'full-load'
+            elif table['configuration']["ingestion_configuration"]['sync_type'] in ["cdc-timestamp-column", "cdc-batch-id"]:
+                table_temp["configuration"]["configuration"]['sync_type'] = 'incremental'
+                table_temp["configuration"]["configuration"]['update_strategy'] = "merge"
+                if table['configuration']['ingestion_configuration'].get('timestamp_column_update', None):
+                    table_temp["configuration"]["configuration"]['watermark_column'] = column_mapping[table['configuration']['ingestion_configuration']['timestamp_column_update']]
+                if table['configuration']['ingestion_configuration'].get('batch_id_cdc_column', None):
+                    table_temp["configuration"]["configuration"]['watermark_column'] = column_mapping[table['configuration']['ingestion_configuration']['batch_id_cdc_column']]
+            else:
+                logging.warning(
+                    "Synctype not supported. Hence not configuring the table: {}".format(table["configuration"]["table"]))
+                continue
             table_temp['entity_type'] = table["entity_type"]
             table_temp['entity_id'] = table['entity_id']
             table_temp["configuration"]["table"] = table["configuration"]["table"]
-            table_temp["configuration"]["configuration"]["target_table_name"] = table['configuration']["ingestion_configuration"]["hive_table_name"]
+            table_temp["configuration"]["configuration"]["target_table_name"] = \
+            table['configuration']["ingestion_configuration"]["hive_table_name"]
             table_temp["configuration"]["configuration"]["target_schema_name"] = hive_schema
             table_temp["configuration"]["configuration"]['exclude_legacy_audit_columns'] = True
             for j in ['read_supported_engines', 'write_supported_engines']:
                 table_temp["configuration"]["configuration"][j] = ["SPARK"]
-
-            #New in 4.2
-            if source_subtype in ["sqlserver", "oracle", "teradata"]:
-                if table['configuration']["ingestion_configuration"].get("crawl_data_filter_enabled", False):
-                    table_temp["configuration"]["configuration"]['crawl_data_filter_enabled'] = True
-                    table_temp["configuration"]["configuration"]['crawl_filter_conditions'] = \
-                    table['configuration']["ingestion_configuration"]["crawl_filter_conditions"]
-                else:
-                    table_temp["configuration"]["configuration"]['crawl_filter_conditions'] = []
-                    table_temp["configuration"]["configuration"]['crawl_data_filter_enabled'] = False
-
-            for k in ['sync_type', 'is_scd2_table', 'is_archive_enabled','natural_keys']:
-                try:
-                    if k == "natural_keys":
-                        table_temp["configuration"]["configuration"][k] = [ column_mapping[col_key] for col_key in table['configuration']["ingestion_configuration"][k.strip('s')]]
-                    else:
-                        table_temp["configuration"]["configuration"][k] = table['configuration']["ingestion_configuration"][k]
-                except:
-                    pass
-            if source_type == "sfdc":
-                #Add enable_pk_chunk,fetch_mechanism,watermark_column
-                table_temp["configuration"]["configuration"]["watermark_column"] = "SystemModstamp"
-                table_temp["configuration"]["configuration"]["fetch_mechanism"] = table['configuration']["ingestion_configuration"]["fetch_mechanism"]
-                table_temp["configuration"]["configuration"]["enable_pk_chunk"] = table['configuration']["ingestion_configuration"]["pk_chunking_enabled"]
-
-            ###partition and split strategy
-            partition, split = partition_split_strategy(table,column_mapping)
-            table_temp["configuration"]["configuration"]["partition_keys"] = partition
-            if split['split_column']:
-                table_temp["configuration"]["configuration"]['split_by_key'] = split
-
-        elif table['configuration']["ingestion_configuration"]['sync_type'] in ["cdc-timestamp-column", "cdc-batch-id"]:
-            table_temp = copy.deepcopy(tabletemplate_obj)
-            table_temp['entity_type'] = table["entity_type"]
-            table_temp['entity_id'] = table['entity_id']
-            table_temp["configuration"]["table"] = table["configuration"]["table"]
-            table_temp["configuration"]["configuration"]["target_table_name"] = table['configuration']["ingestion_configuration"]["hive_table_name"]
-            table_temp["configuration"]["configuration"]["target_schema_name"] = hive_schema
-            table_temp["configuration"]["configuration"]['sync_type'] = 'incremental'
-            table_temp["configuration"]["configuration"]['exclude_legacy_audit_columns'] = True
-            # New in 4.2
-            if source_subtype in ["sqlserver", "oracle", "teradata"]:
-                if table['configuration']["ingestion_configuration"].get("crawl_data_filter_enabled",False):
-                    table_temp["configuration"]["configuration"]['crawl_data_filter_enabled'] = True
-                    table_temp["configuration"]["configuration"]['crawl_filter_conditions'] = table['configuration']["ingestion_configuration"]["crawl_filter_conditions"]
-                else:
-                    table_temp["configuration"]["configuration"]['crawl_filter_conditions'] = []
-                    table_temp["configuration"]["configuration"]['crawl_data_filter_enabled'] = False
-
-
             for k in ['is_scd2_table', 'is_archive_enabled', 'natural_keys']:
                 try:
                     if k == "natural_keys":
-                        table_temp["configuration"]["configuration"][k] = [ column_mapping[col_key] for col_key in table['configuration']["ingestion_configuration"][k.strip('s')]]
+                        if natural_keys:
+                            table_temp["configuration"]["configuration"][k] = [column_mapping[col_key] for col_key in
+                                                                           table['configuration'][
+                                                                               "ingestion_configuration"][k.strip('s')]]
                     else:
                         table_temp["configuration"]["configuration"][k] = table['configuration']["ingestion_configuration"][k]
                 except:
                     pass
-            table_temp["configuration"]["configuration"]['update_strategy'] = "merge"
-            if table['configuration']['ingestion_configuration'].get('timestamp_column_update',None):
-                table_temp["configuration"]["configuration"]['watermark_column'] = column_mapping[table['configuration']['ingestion_configuration']['timestamp_column_update']]
-            if table['configuration']['ingestion_configuration'].get('batch_id_cdc_column',None):
-                table_temp["configuration"]["configuration"]['watermark_column'] = column_mapping[table['configuration']['ingestion_configuration']['batch_id_cdc_column']]
+
+            # New in 4.2
+            if source_subtype in ["sqlserver", "oracle", "teradata","postgresql","db2_luw"]:
+                if table['configuration']["ingestion_configuration"].get("crawl_data_filter_enabled", False):
+                    table_temp["configuration"]["configuration"]['crawl_data_filter_enabled'] = True
+                    filter_cond_temp = []
+                    for item in table['configuration']["ingestion_configuration"]["crawl_filter_conditions"]:
+                        item["filter_column"] = column_mapping[item["filter_column"]]
+                        filter_cond_temp.append(item)
+                    table_temp["configuration"]["configuration"]['crawl_filter_conditions'] = filter_cond_temp
+                else:
+                    table_temp["configuration"]["configuration"]['crawl_filter_conditions'] = []
+                    table_temp["configuration"]["configuration"]['crawl_data_filter_enabled'] = False
 
             if source_type == "sfdc":
-                #Add enable_pk_chunk,fetch_mechanism,watermark_column
+                # Add enable_pk_chunk,fetch_mechanism,watermark_column
                 table_temp["configuration"]["configuration"]["watermark_column"] = "SystemModstamp"
-                table_temp["configuration"]["configuration"]["fetch_mechanism"] = table['configuration']["ingestion_configuration"]["fetch_mechanism"]
-                table_temp["configuration"]["configuration"]["enable_pk_chunk"] = table['configuration']["ingestion_configuration"]["pk_chunking_enabled"]
+                table_temp["configuration"]["configuration"]["fetch_mechanism"] = \
+                table['configuration']["ingestion_configuration"]["fetch_mechanism"]
+                table_temp["configuration"]["configuration"]["enable_pk_chunk"] = \
+                table['configuration']["ingestion_configuration"]["pk_chunking_enabled"]
 
             ###partition and split strategy
-
-            partition,split = partition_split_strategy(table,column_mapping)
+            partition, split = partition_split_strategy(table, column_mapping)
             table_temp["configuration"]["configuration"]["partition_keys"] = partition
             if split['split_column']:
                 table_temp["configuration"]["configuration"]['split_by_key'] = split
-        else:
-            logging.warning("Synctype not supported. Hence not configuring the table: {}".format(table["configuration"]["table"]))
-            continue
 
-        if source_subtype == "teradata":
-            if connection_method == "tpt":
-                table_temp["configuration"]["configuration"]["use_jdbc"] = False
-                table_temp["configuration"]["configuration"]["tpt_reader_instances"] = 1
-                table_temp["configuration"]["configuration"]["tpt_writer_instances"] = 5
-            else:
-                table_temp["configuration"]["configuration"]["use_jdbc"] = False
-                table_temp["configuration"]["configuration"]["fetch_mechanism"] = "bulk"
-        if source_subtype == "oracle":
-            table_temp["configuration"]["configuration"]["fetch_mechanism"] = "bulk"
+            if source_subtype == "teradata":
+                if connection_method == "tpt":
+                    table_temp["configuration"]["configuration"]["use_jdbc"] = False
+                    table_temp["configuration"]["configuration"]["tpt_reader_instances"] = 1
+                    table_temp["configuration"]["configuration"]["tpt_writer_instances"] = 5
+                    del (table_temp["configuration"]["configuration"]['split_by_key'])
+                else:
+                    table_temp["configuration"]["configuration"]["use_jdbc"] = False
 
-        if source_subtype == "sqlserver":
-            table_temp["configuration"]["configuration"]['use_capture_table'] = False
-
-        out.append(table_temp)
-
+            if source_subtype == "sqlserver":
+                table_temp["configuration"]["configuration"]['use_capture_table'] = False
+            out.append(table_temp)
+        except Exception as e:
+            print("Configuration of {} failed {}".format(table["configuration"]["table"],str(e)))
     return out
 
 def convert_rdbms_onprem_to_db(configuration_file_path,cluster_template,source_type,src_id):
     #configuration_file_path="/home/abhi/amn_migration/hadoop_source.json"
-
     with open(configuration_file_path, 'r') as configuration_file:
         configuration = configuration_file.read()
         configuration_obj = IWUtils.ejson_deserialize(configuration)
@@ -296,7 +274,7 @@ def convert_rdbms_onprem_to_db(configuration_file_path,cluster_template,source_t
 
     logging.info('Preparing to configure the tables. There are {} tables in this source to configure'.format(str(len(configuration_obj["tables"]))))
 
-    hive_schema = final["source"]["target_schema_name"]
+    hive_schema = configuration_obj["source"]["hive_schema"]
     table_out = configure_table(configuration_obj, tabletemplate_obj, hive_schema,source_type,configuration_obj["source"]["sourceSubtype"],configuration_obj["source"]["connection"]["connection_method"])
     for item in table_out:
         final['tables'].append(item)
@@ -334,7 +312,7 @@ def convert_sfdc_onprem_to_db(configuration_file_path,cluster_template,source_ty
 
     logging.info('Preparing to configure the tables. There are {} tables in this source to configure'.format(str(len(configuration_obj["tables"]))))
 
-    hive_schema = final["source"]["target_schema_name"]
+    hive_schema = configuration_obj["source"]["hive_schema"]
     table_out = configure_table(configuration_obj, tabletemplate_obj, hive_schema,source_type)
     for item in table_out:
         final['tables'].append(item)

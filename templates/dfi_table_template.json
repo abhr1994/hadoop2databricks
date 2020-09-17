@@ -1,0 +1,43 @@
+{
+            "entity_type": "table",
+            "entity_id": {
+                "$type": "oid",
+                "$value": "9f49fce31d3868f29d97062d"
+            },
+            "configuration": {
+                "configuration": {
+                    "write_supported_engines": [
+                        "SPARK"
+                    ],
+                    "source_file_type": "csv",
+                    "sync_type": "full-load",
+                    "source_relative_path": "",
+                    "target_table_name": "",
+                    "is_archive_enabled": false,
+                    "ingest_subdirectories": false,
+                    "source_file_properties": {
+                        "column_enclosed_by": "",
+                        "header_rows_count": 1,
+                        "column_separator": ",",
+                        "escape_character": "\\",
+                        "encoding": "UTF-8"
+                    },
+                    "exclude_filename_regex": "",
+                    "natural_keys": [],
+                    "include_filename_regex": ".*",
+                    "partition_keys": [],
+                    "is_scd2_table": false,
+                    "generate_history_view": false,
+                    "read_supported_engines": [
+                        "SPARK"
+                    ],
+                    "crawl_filter_conditions": [],
+                    "target_relative_path": "",
+                    "storage_format": "read",
+                    "target_schema_name": "",
+                    "exclude_legacy_audit_columns": true,
+                    "crawl_data_filter_enabled": false
+                },
+                "table": ""
+            }
+        }

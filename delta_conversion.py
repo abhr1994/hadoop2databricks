@@ -1,6 +1,9 @@
 import sys,os,json
-from pyspark.sql.types import BooleanType
+from pyspark.sql.types import BooleanType,TimestampType
 from pyspark.sql.functions import explode,col
+from pyspark.sql.functions import lit
+from datetime import datetime
+
 import quinn
 
 #Linking with Spark Log4j
@@ -32,11 +35,24 @@ def convert_to_delta(src_dir,delta_dir,mode,source_schema,table_name,src_type,fo
                            'ziw_target_start_date', 'ziw_source_end_date', 'ziw_source_end_timestamp',
                            'ziw_target_end_date', 'ziw_target_end_timestamp', 'ziw_active', 'ziw_status_flag', 'ziw_offset']
         df1 = df.drop(*columns_to_drop)
-        df1 = df1.withColumnRenamed("ziw_target_start_timestamp", "ziw_target_timestamp")
-        df1 = df1.withColumn("ziw_is_deleted", col("ziw_is_deleted").cast(BooleanType()))
+        ziw_cols = [i for i in df1.columns if i.startswith('ziw')]
+        if "ziw_target_start_timestamp" in ziw_cols:
+            df1 = df1.withColumnRenamed("ziw_target_start_timestamp", "ziw_target_timestamp")
+        else:
+            df1 = df1.withColumn("ziw_target_timestamp", lit(str(datetime.now())).cast(TimestampType()))
+
+        if "ziw_is_deleted" in ziw_cols:
+            df1 = df1.withColumn("ziw_is_deleted", col("ziw_is_deleted").cast(BooleanType()))
+        else:
+            df1 = df1.withColumn("ziw_is_deleted", lit("false").cast(BooleanType()))
+
         if src_type.lower() == "file":
-            df1 = df1.withColumnRenamed("ziw_filename", "ziw_file_name")
+            if "ziw_filename" in ziw_cols:
+                df1 = df1.withColumnRenamed("ziw_filename", "ziw_file_name")
+            else:
+                df1 = df1.withColumn("ziw_filename", lit("file_name_not_found"))
             df1 = df1.withColumn("ziw_file_modified_timestamp", col("ziw_target_timestamp"))
+
 
         if len(override_columns) > 0:
             global override_dict
