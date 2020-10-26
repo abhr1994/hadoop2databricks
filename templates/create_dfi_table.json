@@ -12,7 +12,7 @@
                     "source_file_type": "csv",
                     "source_relative_path": "/all",
                     "target_table_name": "customer",
-                    "ingest_subdirectories": false,
+                    "ingest_subdirectories": true,
                     "source_file_properties": {
                         "column_enclosed_by": "",
                         "header_rows_count": 1,

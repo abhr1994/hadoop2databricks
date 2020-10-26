@@ -1,0 +1,23 @@
+{
+    "configuration": {
+                "configuration": {
+                    "write_supported_engines": [
+                        "SPARK"
+                    ],
+                    "sync_type": "",
+                    "is_archive_enabled": false,
+                    "natural_keys": [],
+                    "partition_keys": [],
+                    "is_scd2_table": false,
+                    "generate_history_view": false,
+                    "read_supported_engines": [
+                        "SPARK"
+                    ],
+                    "storage_format": "read",
+                    "update_strategy": "merge",
+                    "watermark_column": "",
+                    "target_table_name": ""
+                },
+                "table": ""
+            }
+}

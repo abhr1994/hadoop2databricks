@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os,sys
+
 try:
     iw_home = os.environ['IW_HOME']
 except KeyError as e:
@@ -70,7 +71,7 @@ def main():
                         help="Pass the ServicePrincipal Secret Key here")
     parser.add_argument('--service_principal_tenant', dest='service_principal_tenant', required=True,
                         help="Pass the ServicePrincipal TenantID here")
-    parser.add_argument('--adlsgen2_storagestring',dest='adlsgen2_storagestring', required=True,help='DefaultEndpointsProtocol=https;AccountName=<>;AccountKey=<>')
+    parser.add_argument('--adlsgen2_url',dest='adlsgen2_url', required=True,help='Gen 2 URL')
     parser.add_argument('--data_lake_store_uri',dest='data_lake_store_uri', required=False,help='htts://<account_name>.azuredatalakestore.net/webhdfs/v1')
     parser.add_argument('--blob_storagestring', dest='blob_storagestring', required=False,
                         help='DefaultEndpointsProtocol=https;AccountName=<>;AccountKey=<>')
@@ -84,60 +85,54 @@ def main():
 
     # The data factory name. It must be globally unique.
     df_name = args['df_name']
-
     # Specify your Active Directory client ID, client secret, and tenant ID
     credentials = ServicePrincipalCredentials(
         client_id=args['service_principal_client_id'], secret=args['service_principal_secret_key'], tenant=args['service_principal_tenant'])
     adf_client = DataFactoryManagementClient(credentials, subscription_id)
 
-    # Create an ADLS Gen2 Storage linked service
-    ls_name = 'AzureDataLakeStorage1'
-    # Specify the name and key of your Azure Storage account
-    #storage_string = SecureString(value='DefaultEndpointsProtocol=https;AccountName=pepsigen2adls;AccountKey=6xAztEmI77tB1+x5PWWPMJ+ovz/hfjFfoVAES6jiM83p2/oRjfdPRx1FHGubmKITF3yut86/JviNwlvlbR7O2w==')
-    storage_string = SecureString(value=args['adlsgen2_storagestring'])
-    ir = IntegrationRuntimeReference(reference_name="integrationRuntime1")
-    ls_azure_storage = AzureStorageLinkedService(connection_string=storage_string,connect_via=ir)
-    print(rg_name)
-    ls = adf_client.linked_services.create_or_update(rg_name, df_name, ls_name, ls_azure_storage)
-    print_item(ls)
+    # Create/Update an ADLS Gen2 Storage linked service
+    ls_gen2_name = 'prdadlsgen2_edapadlsdevna'
+    gen2_url = args['adlsgen2_url']
+    ls_azure_storage = AzureBlobFSLinkedService(url=gen2_url)
+    ls_gen2 = adf_client.linked_services.create_or_update(rg_name, df_name, ls_gen2_name, ls_azure_storage)
+    print_item(ls_gen2)
+
 
     if args['source_type'].lower() == "adls":
-        # Create a ADL Gen1 Storage linked service
-        ls_name_adls='storageLinkedAdlsService'
+        # Create/Update a ADL Gen1 Storage linked service
+        ls_adls_name='Gen1'
         ls_azure_adls_storage = AzureDataLakeStoreLinkedService(data_lake_store_uri=args['data_lake_store_uri'],subscription_id=subscription_id,tenant=args['service_principal_tenant'])
-        print(ls_azure_adls_storage)
-        ls_adls = adf_client.linked_services.create_or_update(rg_name, df_name, ls_name_adls, ls_azure_adls_storage)
+        ls_adls = adf_client.linked_services.create_or_update(rg_name, df_name, ls_adls_name, ls_azure_adls_storage)
         print_item(ls_adls)
 
     if args['source_type'].lower() == "blob":
-        # Create an Blob Storage linked service
-        ls_name_blob = 'storageLinkedBlobService'
-        #storage_string_blob = SecureString(value='DefaultEndpointsProtocol=https;AccountName=copygen1togen2blobsource;AccountKey=BSA17/S0rorUEUDvtBka3DP41uiNUEXTmso6ApUPDlTgyymu65G+4Xub9Cgv6x6yujc+T8yLuokzPZoUN+0wSg==')
+        # Create/Update an Blob Storage linked service
+        ls_blob_name = 'prdinfoworksblob'
         storage_string_blob = SecureString(value=args['blob_storagestring'])
-        ls_azure_blob_storage = AzureStorageLinkedService(connection_string=storage_string_blob)
-        ls_blob = adf_client.linked_services.create_or_update(rg_name, df_name, ls_name_blob, ls_azure_blob_storage)
+        ls_azure_blob_storage = AzureBlobStorageLinkedService(connection_string=storage_string_blob)
+        ls_blob = adf_client.linked_services.create_or_update(rg_name, df_name, ls_blob_name, ls_azure_blob_storage)
         print_item(ls_blob)
 
-    # Create an Azure ADL dataset (input)
+    # Create an Azure ADL or Azure Blob dataset (input)
     inp_path = args['input_path']
-    ds_name = 'ds_in'
+    dsIn_name = 'ds_in'
     if args['source_type'].lower() == "adls":
-        ds_ls_adls_blob = LinkedServiceReference(reference_name=ls_name_adls)
+        ds_ls_adls_blob = LinkedServiceReference(reference_name=ls_adls_name)
         ds_azure_adlorblob = AzureDataLakeStoreDataset(linked_service_name=ds_ls_adls_blob, folder_path=inp_path,file_name='*')
     elif args['source_type'].lower() == "blob":
-        ds_ls_adls_blob = LinkedServiceReference(reference_name=ls_name_blob)
+        ds_ls_adls_blob = LinkedServiceReference(reference_name=ls_blob_name)
         ds_azure_adlorblob = AzureBlobDataset(linked_service_name=ds_ls_adls_blob, folder_path=inp_path,file_name='*')
     else:
         sys.exit(1)
 
-    dsin = adf_client.datasets.create_or_update(rg_name, df_name, ds_name, ds_azure_adlorblob)
+    dsin = adf_client.datasets.create_or_update(rg_name, df_name, dsIn_name, ds_azure_adlorblob)
     print_item(dsin)
 
-    # Create an Azure blob dataset (output)
+    # Create an Azure Gen2 dataset (output)
     dsOut_name = 'ds_out'
-    ds_ls = LinkedServiceReference(reference_name=ls_name)
+    ds_ls = LinkedServiceReference(reference_name=ls_gen2_name)
     output_blobpath = args['output_path']
-    dsOut_azure_blob = AzureBlobDataset(linked_service_name=ds_ls, folder_path=output_blobpath)
+    dsOut_azure_blob = AzureBlobFSDataset(linked_service_name=ds_ls, folder_path=output_blobpath)
     dsOut = adf_client.datasets.create_or_update(rg_name, df_name, dsOut_name, dsOut_azure_blob)
     print_item(dsOut)
 
@@ -146,13 +141,12 @@ def main():
     if args['source_type'].lower() == "adls":
         adl_blob__source = AzureDataLakeStoreSource()
     else:
-        adl_blob__source = BlobSource(max_concurrent_connections=10)
-    blob_sink = BlobSink(copy_behavior="PreserveHierarchy",max_concurrent_connections=10)
-    dsin_ref = DatasetReference(reference_name=ds_name)
+        adl_blob__source = BlobSource(max_concurrent_connections=100)
+    blob_sink = BlobSink(copy_behavior="PreserveHierarchy",max_concurrent_connections=100)
+    dsin_ref = DatasetReference(reference_name=dsIn_name)
     dsOut_ref = DatasetReference(reference_name=dsOut_name)
-
-    copy_activity = CopyActivity(name=act_name, inputs=[dsin_ref], outputs=[dsOut_ref], source=adl_blob__source, sink=blob_sink)
-
+    #copy_activity = CopyActivity(name=act_name, inputs=[dsin_ref], outputs=[dsOut_ref], source=adl_blob__source, sink=blob_sink, parallel_copies = 10, data_integration_units=None, skip_error_file = SkipErrorFile())
+    copy_activity = CopyActivity(name=act_name, inputs=[dsin_ref], outputs=[dsOut_ref], source=adl_blob__source,sink=blob_sink)
 
     # Create a pipeline with the copy activity
     p_name = 'copyPipeline'
@@ -172,8 +166,7 @@ def main():
         else:
             break
     filter_params = RunFilterParameters(last_updated_after=datetime.now() - timedelta(1), last_updated_before=datetime.now() + timedelta(1))
-    query_response = adf_client.activity_runs.query_by_pipeline_run(
-        rg_name, df_name, pipeline_run.run_id, filter_params)
+    query_response = adf_client.activity_runs.query_by_pipeline_run(rg_name, df_name, pipeline_run.run_id, filter_params)
     print_activity_run_details(query_response.value[0])
 
 # Start the main method
