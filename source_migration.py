@@ -81,7 +81,7 @@ else:
 if configuration_obj:
     logging.info('Conversion of config file successful')
     configuration = IWUtils.ejson_serialize(configuration_obj)
-    #logging.info('The configuration object to configure the source is {} '.format(configuration))
+    logging.info('The configuration object to configure the source is {} '.format(configuration))
     response = IWUtils.ejson_deserialize(requests.post(configure_source_url, data=configuration).content)
     logging.info('Configuration of source done {} '.format(response))
     set_cluster_template(args['cluster_template'], source_id)

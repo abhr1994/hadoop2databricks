@@ -15,8 +15,7 @@ import argparse
 
 
 def get_table_id(target_db_name,target_table_name):
-    doc = mongodb[CollectionName.TABLES].find_one({"target_schema_name": target_db_name, "table": target_table_name},
-                                                  {"target_base_path": 1, "target_schema_name": 1, "table": 1, })
+    doc = mongodb[CollectionName.TABLES].find_one({"target_schema_name": target_db_name, "table": target_table_name},{"_id": 1})
     return doc['_id']
 
 

@@ -37,6 +37,11 @@ def convert_to_delta(ext_src_schema,ext_table_name,delta_dir, mode, source_schem
             df = spark.read.format(format).load("dbfs:"+src_dir)
         else:
             df = spark.sql("select * from {}.{}".format("pep_migration_" + ext_src_schema, ext_table_name))
+        columns_to_drop = ['ziw_row_id', 'ziw_seqval', 'ziw_scn', 'ziw_source_start_date', 'ziw_source_start_timestamp',
+                           'ziw_target_start_date','ziw_target_start_timestamp', 'ziw_source_end_date', 'ziw_source_end_timestamp',
+                           'ziw_target_end_date', 'ziw_target_end_timestamp', 'ziw_active', 'ziw_status_flag',
+                           'ziw_offset']
+        df = df.drop(*columns_to_drop)
         ziw_cols = [i for i in df.columns if i.startswith('ziw')]
         df1 = df.withColumn("ziw_target_timestamp", lit(str(datetime.now())).cast(TimestampType()))
         df1 = df1.withColumn("ziw_is_deleted", lit("false").cast(BooleanType()))

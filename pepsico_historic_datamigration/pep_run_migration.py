@@ -62,8 +62,8 @@ def run_conversion_job(i, q):
             params = q.get()
             # Do ur task here
             #source_name, table_name, source_schema, storage_format, last_ingested_cdc_value, last_merged_timestamp, sync_type, partition_column, override_columns, rowcount, source_type, sqoop_src_schema, sqoop_table_name, gen1_src_dir = params.split(',')
-
-            infoworks_source_name, infoworks_target_schema, infoworks_table_name, hdi_dl_storage_format, last_ingested_cdc_value, last_merged_timestamp, partition_column, override_columns, rowcount, source_type, hdi_src_schema, hdi_table_name, hdi_src_dir, is_iw_table = params.split(',')
+            infoworks_source_name, infoworks_target_schema, infoworks_table_name, hdi_dl_storage_format, last_ingested_cdc_value, last_merged_timestamp, hdi_src_dir, rowcount, partition_column, override_columns, source_type, hdi_src_schema, hdi_table_name, is_iw_table = params.split(',')
+            #infoworks_source_name, infoworks_target_schema, infoworks_table_name, hdi_dl_storage_format, last_ingested_cdc_value, last_merged_timestamp, partition_column, override_columns, rowcount, source_type, hdi_src_schema, hdi_table_name, hdi_src_dir, is_iw_table = params.split(',')
             if hdi_src_schema == "" or hdi_table_name == "":
                 hdi_src_schema = "N/A"
                 hdi_table_name = "N/A"

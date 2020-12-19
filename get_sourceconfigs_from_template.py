@@ -7,6 +7,7 @@ __status__ = "Dev"
 
 import os,sys
 import logging
+import traceback
 
 logging.getLogger().setLevel(logging.INFO)
 try:
@@ -229,7 +230,8 @@ def configure_table(configuration_obj,tabletemplate_obj,hive_schema,source_type,
                     table_temp["configuration"]["configuration"]["use_jdbc"] = False
                     table_temp["configuration"]["configuration"]["tpt_reader_instances"] = 1
                     table_temp["configuration"]["configuration"]["tpt_writer_instances"] = 5
-                    del (table_temp["configuration"]["configuration"]['split_by_key'])
+                    if table_temp["configuration"]["configuration"].get('split_by_key'):
+                        del (table_temp["configuration"]["configuration"]['split_by_key'])
                 else:
                     table_temp["configuration"]["configuration"]["use_jdbc"] = False
 
@@ -237,6 +239,7 @@ def configure_table(configuration_obj,tabletemplate_obj,hive_schema,source_type,
                 table_temp["configuration"]["configuration"]['use_capture_table'] = False
             out.append(table_temp)
         except Exception as e:
+            traceback.print_exc()
             print("Configuration of {} failed {}".format(table["configuration"]["table"],str(e)))
     return out
 
